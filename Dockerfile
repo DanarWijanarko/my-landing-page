@@ -76,6 +76,11 @@ FROM node:${NODE_VERSION} AS runner
 # Set working directory
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
 # Set production environment variables
 ENV NODE_ENV=production
 ENV PORT=3000
@@ -105,8 +110,11 @@ COPY --from=builder --chown=node:node /app/.next/static ./.next/static
 # Switch to non-root user for security best practices
 USER node
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:${PORT}/api/health || exit 1
+
 # Expose port 3000 to allow HTTP traffic
-EXPOSE 3000
+EXPOSE ${PORT}
 
 # Start Next.js standalone server
 CMD ["node", "server.js"]
